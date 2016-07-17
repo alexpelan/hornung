@@ -10,7 +10,6 @@ var parseAnswerFromMouseoverHandler = function($clue, startString){
 		var mouseoverHandler = $clue.find("div").first().attr("onmouseover");
 		var startOfAnswer = mouseoverHandler.indexOf(startString);
 		var endOfAnswer = mouseoverHandler.indexOf("</em>")
-		console.log(startOfAnswer, startString.length, endOfAnswer);
 		var answer = mouseoverHandler.slice(startOfAnswer + startString.length, endOfAnswer);
 		return answer
 };
@@ -18,10 +17,15 @@ var parseAnswerFromMouseoverHandler = function($clue, startString){
 var parseJeopardySubgame = function($, jeopardyDiv){
 	var game = {};
 	var categoryOrder = {};
+	game.categories = [];
 	//parse categories
 	jeopardyDiv.find(".category_name").each(function(index, element){
 		var categoryTitle = element.children[0].data;
-		game[categoryTitle] = {};
+		var newCategory = {
+			name: categoryTitle,
+			clues: []
+		};
+		game.categories.push(newCategory);
 		categoryOrder[index] = categoryTitle;
 	});
 
@@ -35,10 +39,13 @@ var parseJeopardySubgame = function($, jeopardyDiv){
 		//j-archive shows the answer via an onmouseover handler, we need to parse it out to figure out the actual answer
 		var answer = parseAnswerFromMouseoverHandler($(element), '"correct_response">');
 
-		game[categoryName][value] = {
-			"question": question,
-			"answer": answer
+		var fullQuestionObject = {
+			value: value,
+			question: question,
+			answer: answer
 		};
+
+		game.categories[columnIndex].clues.push(fullQuestionObject);
 
 	});
 
@@ -52,10 +59,56 @@ var parseFinalJeopardy = function($){
 	var question = $(".final_round .clue_text").text().trim();
 	var answer = parseAnswerFromMouseoverHandler($(".final_round .category"), '\\"correct_response\\">');
 	return {
-		category: categoryName,
-		question: question,
-		answer: answer
-	}
+		categories: [{
+			name: categoryName,
+			question: question,
+			answer: answer
+		}]
+	};
+}
+
+var parseJeopardyGame = function(html){
+	var $ = cheerio.load(html);
+	var gameTitle = $("#game_title").text().trim();
+	var titleTokens = gameTitle.split("-");
+
+	var jeopardy = parseJeopardySubgame($, $("#jeopardy_round"));
+	var doubleJeopardy = parseJeopardySubgame($, $("#double_jeopardy_round"));
+	var finalJeopardy = parseFinalJeopardy($);
+
+	return {
+		"show_number": titleTokens[0].trim(),
+		"air_date": titleTokens[1].trim(),
+		"jeopardy": jeopardy,
+		"double_jeopardy": doubleJeopardy,
+		"final_jeopardy": finalJeopardy
+	};
+}
+
+//
+// List of Seasons
+//
+
+var parseJeopardySeason = function(html) {
+	var $ = cheerio.load(html);
+	
+	var seasonsTable = $("#content table");
+	var games = [];
+
+	seasonsTable.find("tr").each(function(index, element) {
+		var newGame = {};
+		var gameIdParam = "?game_id=";
+		var url = $(element).find("td a").first().attr("href");
+		var gameIdIndex = url.lastIndexOf(gameIdParam);
+		newGame.id = url.slice(gameIdIndex + gameIdParam.length);
+		newGame.displayName = $(element).find("td").first().text().trim();
+		games.push(newGame);
+	});
+
+
+	return {
+		games: games
+	};
 }
 
 router.get('/', function(req, res) {
@@ -64,26 +117,24 @@ router.get('/', function(req, res) {
 
 	request(url, function(error, response, html){
 		if(!error){
-			var $ = cheerio.load(html);
-			var gameTitle = $("#game_title").text().trim();
-			var titleTokens = gameTitle.split("-");
-
-			var jeopardy = parseJeopardySubgame($, $("#jeopardy_round"));
-			var doubleJeopardy = parseJeopardySubgame($, $("#double_jeopardy_round"));
-			var finalJeopardy = parseFinalJeopardy($);
-
-			res.json({
-				"show_number": titleTokens[0].trim(),
-				"air_date": titleTokens[1].trim(),
-				"jeopardy": jeopardy,
-				"double_jeopardy": doubleJeopardy,
-				"final_jeopardy": finalJeopardy
-			});
+			res.json(parseJeopardyGame(html));
 		}
 		else{
 			console.log(error);
 		}
 
+	});
+});
+
+router.get("/seasons/:id", function(req, res) {
+	var url = "http://www.j-archive.com/showseason.php?season=" + req.params.id;
+
+	request(url, function(error, response, html) {
+		if (!error) {
+			res.json(parseJeopardySeason(html));
+		} else {
+			console.log(error);
+		}
 	});
 });
 
