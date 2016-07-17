@@ -86,7 +86,7 @@ var parseJeopardyGame = function(html){
 }
 
 //
-// List of Seasons
+// List of Games per season
 //
 
 var parseJeopardySeason = function(html) {
@@ -105,15 +105,47 @@ var parseJeopardySeason = function(html) {
 		games.push(newGame);
 	});
 
-
 	return {
 		games: games
 	};
-}
+};
 
-router.get('/', function(req, res) {
+//
+// List of Seasons (top-level menu)
+//
 
-	var url = "http://www.j-archive.com/showgame.php?game_id=5002";
+var parseSeasonList = function(html) {
+	var $ = cheerio.load(html)
+
+	var seasonsTable = $("#content table");
+	var seasons = [];
+
+	seasonsTable.find("tr").each(function(index, element) {
+		var newSeason = {};
+		var seasonIdParam = "?season=";
+		var url = $(element).find("td a").first().attr("href");
+		var gameIdIndex = url.lastIndexOf(seasonIdParam);
+		newSeason.id = url.slice(gameIdIndex + seasonIdParam.length);
+		newSeason.displayName = $(element).find("td").first().text().trim();
+		seasons.push(newSeason);
+	});
+
+	return {
+		seasons: seasons
+	};
+
+};
+
+router.get('/games/:id', function(req, res) {
+
+	var id;
+	if (!req.params.id) {
+		id = "5002";
+	} else {
+		id = req.params.id;
+	}
+
+	var url = "http://www.j-archive.com/showgame.php?game_id=" + id;
 
 	request(url, function(error, response, html){
 		if(!error){
@@ -136,6 +168,19 @@ router.get("/seasons/:id", function(req, res) {
 			console.log(error);
 		}
 	});
+});
+
+router.get("/", function(req, res) {
+	var url = "http://j-archive.com/listseasons.php";
+
+	request(url, function(error, response, html) {
+		if (!error) {
+			res.json(parseSeasonList(html));
+		} else {
+			console.log(error);
+		}
+	});
+
 });
 
 
