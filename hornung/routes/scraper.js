@@ -5,6 +5,11 @@ var router = express.Router();
 
 var mongoose = require('mongoose');
 
+var CONSTS = {
+	JEOPARDY: "jeopardy",
+	DOUBLE_JEOPARDY: "double_jeopardy"
+};
+
 
 var parseAnswerFromMouseoverHandler = function($clue, startString){
 		var mouseoverHandler = $clue.find("div").first().attr("onmouseover");
@@ -14,7 +19,7 @@ var parseAnswerFromMouseoverHandler = function($clue, startString){
 		return answer
 };
 
-var parseJeopardySubgame = function($, jeopardyDiv){
+var parseJeopardySubgame = function($, jeopardyDiv, gameName){
 	var game = {};
 	var categoryOrder = {};
 	game.categories = [];
@@ -31,8 +36,24 @@ var parseJeopardySubgame = function($, jeopardyDiv){
 
 	jeopardyDiv.find(".clue").each(function(index, element){
 		var value = $(element).find(".clue_value").text().trim();
+		var isDailyDouble = false;
+
+
 		var columnIndex = index % 6;
-		var categoryName = categoryOrder[columnIndex];
+		// if no value, it's a daily double. We can use gameName and the previous clue's value to figure it out (daily double will never be first in a category)
+		if (!value) {
+			var numberOfClues = game.categories[columnIndex].clues.length;
+			var previousValue = game.categories[columnIndex].clues[numberOfClues - 1].value;
+			isDailyDouble = true;
+			previousValue = previousValue.slice(1);
+			if (gameName === CONSTS.JEOPARDY) {
+				value = parseInt(previousValue) + 100;
+				value = "$" + value;
+			} else if (gameName === CONSTS.DOUBLE_JEOPARDY) {
+				value = parseInt(previousValue) + 200;
+				value = "$" + value;
+			}
+		}
 
 		var question = $(element).find(".clue_text").text().trim();
 
@@ -42,7 +63,8 @@ var parseJeopardySubgame = function($, jeopardyDiv){
 		var fullQuestionObject = {
 			value: value,
 			question: question,
-			answer: answer
+			answer: answer,
+			isDailyDouble: isDailyDouble
 		};
 
 		game.categories[columnIndex].clues.push(fullQuestionObject);
@@ -72,8 +94,8 @@ var parseJeopardyGame = function(html){
 	var gameTitle = $("#game_title").text().trim();
 	var titleTokens = gameTitle.split("-");
 
-	var jeopardy = parseJeopardySubgame($, $("#jeopardy_round"));
-	var doubleJeopardy = parseJeopardySubgame($, $("#double_jeopardy_round"));
+	var jeopardy = parseJeopardySubgame($, $("#jeopardy_round"), CONSTS.JEOPARDY);
+	var doubleJeopardy = parseJeopardySubgame($, $("#double_jeopardy_round"), CONSTS.DOUBLE_JEOPARDY);
 	var finalJeopardy = parseFinalJeopardy($);
 
 	return {
