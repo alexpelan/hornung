@@ -5,12 +5,6 @@ var router = express.Router();
 
 var mongoose = require('mongoose');
 
-var CONSTS = {
-	JEOPARDY: "jeopardy",
-	DOUBLE_JEOPARDY: "double_jeopardy"
-};
-
-
 var parseAnswerFromMouseoverHandler = function($clue, startString){
 		var mouseoverHandler = $clue.find("div").first().attr("onmouseover");
 		var startOfAnswer = mouseoverHandler.indexOf(startString);
@@ -19,7 +13,7 @@ var parseAnswerFromMouseoverHandler = function($clue, startString){
 		return answer
 };
 
-var parseJeopardySubgame = function($, jeopardyDiv, gameName){
+var parseJeopardySubgame = function($, jeopardyDiv, dollarAmountDelta){
 	var game = {};
 	var categoryOrder = {};
 	game.categories = [];
@@ -46,13 +40,8 @@ var parseJeopardySubgame = function($, jeopardyDiv, gameName){
 			var previousValue = game.categories[columnIndex].clues[numberOfClues - 1].value;
 			isDailyDouble = true;
 			previousValue = previousValue.slice(1);
-			if (gameName === CONSTS.JEOPARDY) {
-				value = parseInt(previousValue) + 100;
-				value = "$" + value;
-			} else if (gameName === CONSTS.DOUBLE_JEOPARDY) {
-				value = parseInt(previousValue) + 200;
-				value = "$" + value;
-			}
+			value = parseInt(previousValue) + dollarAmountDelta;
+			value = "$" + value;
 		}
 
 		var question = $(element).find(".clue_text").text().trim();
@@ -94,8 +83,17 @@ var parseJeopardyGame = function(html){
 	var gameTitle = $("#game_title").text().trim();
 	var titleTokens = gameTitle.split("-");
 
-	var jeopardy = parseJeopardySubgame($, $("#jeopardy_round"), CONSTS.JEOPARDY);
-	var doubleJeopardy = parseJeopardySubgame($, $("#double_jeopardy_round"), CONSTS.DOUBLE_JEOPARDY);
+	var isNewValueGame = $("#double_jeopardy_round:contains($2000)").length > 0;
+	var dollarAmountDelta;
+
+	if (isNewValueGame) {
+		dollarAmountDelta = 200;
+	} else {
+		dollarAmountDelta = 100;
+	}
+
+	var jeopardy = parseJeopardySubgame($, $("#jeopardy_round"), dollarAmountDelta);
+	var doubleJeopardy = parseJeopardySubgame($, $("#double_jeopardy_round"), 2 * dollarAmountDelta);
 	var finalJeopardy = parseFinalJeopardy($);
 
 	return {
