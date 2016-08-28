@@ -5,12 +5,16 @@ var router = express.Router();
 
 var mongoose = require('mongoose');
 
-var parseAnswerFromMouseoverHandler = function($clue, startString){
-		var mouseoverHandler = $clue.find("div").first().attr("onmouseover");
-		var startOfAnswer = mouseoverHandler.indexOf(startString);
-		var endOfAnswer = mouseoverHandler.indexOf("</em>")
-		var answer = mouseoverHandler.slice(startOfAnswer + startString.length, endOfAnswer);
-		return answer
+var parseAnswerFromMouseoverHandler = function($, $clue, startString){
+	if (!$clue.find) {
+		return;
+	}
+	var mouseoverHandler = $clue.find("div").first().attr("onmouseover");
+	var startOfAnswer = mouseoverHandler.indexOf(startString);
+	var endOfAnswer = mouseoverHandler.indexOf("</em>");
+	var answer = mouseoverHandler.slice(startOfAnswer + startString.length, endOfAnswer);
+	answer = $("<p>" + answer + "</p>").text(); //some answers have html for display in them, we don't want that
+	return answer
 };
 
 var parseJeopardySubgame = function($, jeopardyDiv, dollarAmountDelta){
@@ -37,17 +41,43 @@ var parseJeopardySubgame = function($, jeopardyDiv, dollarAmountDelta){
 		// if no value, it's a daily double. We can use gameName and the previous clue's value to figure it out (daily double will never be first in a category)
 		if (!value) {
 			var numberOfClues = game.categories[columnIndex].clues.length;
-			var previousValue = game.categories[columnIndex].clues[numberOfClues - 1].value;
+			var previousClue = game.categories[columnIndex].clues[numberOfClues - 1];
+			var previousValue = 0;
+			if (!previousClue) { // lowest row in the column
+				if (columnIndex === 0 ) {
+					return; //FIXFIX:  daily double in first row, first column
+				}
+
+				previousClue = game.categories[columnIndex - 1].clues[numberOfClues];
+
+				if (!previousClue) {
+					return;
+				}
+
+				value = previousClue.value.slice(1);
+			} else {
+				previousValue = previousClue.value;
+				previousValue = previousValue.slice(1);
+				value = parseInt(previousValue) + dollarAmountDelta;
+
+			}
+
 			isDailyDouble = true;
-			previousValue = previousValue.slice(1);
-			value = parseInt(previousValue) + dollarAmountDelta;
 			value = "$" + value;
 		}
 
 		var question = $(element).find(".clue_text").text().trim();
 
+		if (!question) { // some games are just missing data
+			return;
+		}
+
 		//j-archive shows the answer via an onmouseover handler, we need to parse it out to figure out the actual answer
-		var answer = parseAnswerFromMouseoverHandler($(element), '"correct_response">');
+		var answer = parseAnswerFromMouseoverHandler($, $(element), '"correct_response">');
+
+		if (!answer) {
+			return;
+		}
 
 		var fullQuestionObject = {
 			value: value,
