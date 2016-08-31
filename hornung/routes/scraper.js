@@ -5,7 +5,7 @@ var router = express.Router();
 
 var mongoose = require('mongoose');
 
-var parseAnswerFromMouseoverHandler = function($, $clue, startString){
+var parseAnswerFromMouseoverHandler = function($, $clue, startString) {
 	if (!$clue.find) {
 		return;
 	}
@@ -17,13 +17,40 @@ var parseAnswerFromMouseoverHandler = function($, $clue, startString){
 	return answer
 };
 
+var parseMedia = function($, $clue) {
+	var media = [];
+
+	$clue.find(".clue_text a").each(function(index, element) {
+		var mediaObject = {};
+		mediaObject.url = $(element).attr("href");
+
+		var extension = mediaObject.url.slice(mediaObject.url.lastIndexOf(".") + 1);
+		var MEDIA_TYPES = {
+			"png": "image",
+			"jpg": "image",
+			"mp3": "audio"
+		}
+		var type = MEDIA_TYPES[extension];
+
+		if (!type) 	{
+			return;
+		}
+
+		mediaObject.type = type;
+
+		media.push(mediaObject);
+	});
+
+	return media;
+};
+
 var parseJeopardySubgame = function($, jeopardyDiv, dollarAmountDelta){
 	var game = {};
 	var categoryOrder = {};
 	game.categories = [];
 	//parse categories
 	jeopardyDiv.find(".category_name").each(function(index, element){
-		var categoryTitle = element.children[0].data;
+		var categoryTitle = $(element).text().trim();
 		var newCategory = {
 			name: categoryTitle,
 			clues: []
@@ -79,10 +106,13 @@ var parseJeopardySubgame = function($, jeopardyDiv, dollarAmountDelta){
 			return;
 		}
 
+		var media = parseMedia($, $(element));
+
 		var fullQuestionObject = {
 			value: value,
 			question: question,
 			answer: answer,
+			media: media,
 			isDailyDouble: isDailyDouble
 		};
 
@@ -98,7 +128,7 @@ var parseFinalJeopardy = function($){
 	var result = {};
 	var categoryName = $(".final_round .category").text().trim();
 	var question = $(".final_round .clue_text").text().trim();
-	var answer = parseAnswerFromMouseoverHandler($(".final_round .category"), '\\"correct_response\\">');
+	var answer = parseAnswerFromMouseoverHandler($, $(".final_round .category"), '\\"correct_response\\">');
 	return {
 		categories: [{
 			name: categoryName,
