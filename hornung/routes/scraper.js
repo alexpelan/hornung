@@ -173,16 +173,15 @@ var parseJeopardySeason = function(html) {
 	var $ = cheerio.load(html);
 	
 	var seasonsTable = $("#content table");
-	var games = [];
+	var games = {};
 
 	seasonsTable.find("tr").each(function(index, element) {
-		var newGame = {};
 		var gameIdParam = "?game_id=";
 		var url = $(element).find("td a").first().attr("href");
 		var gameIdIndex = url.lastIndexOf(gameIdParam);
-		newGame.id = url.slice(gameIdIndex + gameIdParam.length);
-		newGame.displayName = $(element).find("td").first().text().trim();
-		games.push(newGame);
+		var id = url.slice(gameIdIndex + gameIdParam.length);
+		var displayName = $(element).find("td").first().text().trim();
+		games[id] = ({displayName: displayName});
 	});
 
 	return {
@@ -198,16 +197,15 @@ var parseSeasonList = function(html) {
 	var $ = cheerio.load(html)
 
 	var seasonsTable = $("#content table");
-	var seasons = [];
+	var seasons = {};
 
 	seasonsTable.find("tr").each(function(index, element) {
-		var newSeason = {};
 		var seasonIdParam = "?season=";
 		var url = $(element).find("td a").first().attr("href");
 		var gameIdIndex = url.lastIndexOf(seasonIdParam);
-		newSeason.id = url.slice(gameIdIndex + seasonIdParam.length);
-		newSeason.displayName = $(element).find("td").first().text().trim();
-		seasons.push(newSeason);
+		var id = url.slice(gameIdIndex + seasonIdParam.length);
+		var displayName = $(element).find("td").first().text().trim();
+		seasons[id] = { displayName: displayName };
 	});
 
 	return {
