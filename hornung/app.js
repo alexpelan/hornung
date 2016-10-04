@@ -7,15 +7,7 @@ var bodyParser = require('body-parser');
 
 var routes = require('./routes/index');
 var scraper = require('./routes/scraper');
-
-var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/todoApp', function(err) {
-    if(err) {
-        console.log('connection error', err);
-    } else {
-        console.log('connection successful');
-    }
-});
+var api = require('./routes/api');
 
 var app = express();
 
@@ -33,6 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
 app.use('/scraper', scraper);
+app.use('/api', api);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
