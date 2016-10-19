@@ -7,45 +7,39 @@ var MongoClient = require('mongodb').MongoClient,
 
 var url = 'mongodb://localhost:27017/test';
 
-// router.get('/games/:id', function(req, res) {
+router.get('/games/:id', function(req, res) {
+	MongoClient.connect(url, function(err, db) {
+		var gamesCollection = db.collection("games");
+		gamesCollection.find({id: req.params.id}).toArray().then(function(results) {
+			res.json(results[0]);
+			db.close();
+		});
+	});
+});
 
-// 	var id;
-// 	if (!req.params.id) {
-// 		id = "5002";
-// 	} else {
-// 		id = req.params.id;
-// 	}
-
-// 	var url = "http://www.j-archive.com/showgame.php?game_id=" + id;
-
-// 	request(url, function(error, response, html){
-// 		if(!error){
-// 			res.json(parseJeopardyGame(html));
-// 		}
-// 		else{
-// 			console.log(error);
-// 		}
-
-// 	});
-// });
-
-// router.get("/seasons/:id", function(req, res) {
-// 	var url = "http://www.j-archive.com/showseason.php?season=" + req.params.id;
-
-// 	request(url, function(error, response, html) {
-// 		if (!error) {
-// 			res.json(parseJeopardySeason(html));
-// 		} else {
-// 			console.log(error);
-// 		}
-// 	});
-// });
+router.get("/seasons/:id", function(req, res) {
+	MongoClient.connect(url, function(err, db) {
+		var gamesCollection = db.collection("games");
+		gamesCollection.find({season: req.params.id}, {id: 1, displayName: 1}).toArray().then(function(results) {
+			var transformedResults = {}; // transform the data for easier construction of the state on the client 
+			results.forEach(function(result) {
+				transformedResults[result.id] = {
+					displayName: result.displayName
+				};
+			});
+			res.json({
+				status: "ok",
+				games: transformedResults
+			})
+			db.close();
+		});
+	});
+});
 
 router.get("/", function(req, res) {
 	MongoClient.connect(url, function(err, db) {
 		var seasonsCollection = db.collection("seasons");
-		seasonsCollection.find({}).toArray().then(function(result){
-			console.log(result)
+		seasonsCollection.find({}).sort({sortNumber: -1}).toArray().then(function(result){
 			res.json({
 				"status": "ok",
 				seasons: result

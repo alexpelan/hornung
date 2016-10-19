@@ -15,6 +15,7 @@
     "mongodb": "^2.2.10",
     "morgan": "~1.6.1",
     "request": "latest",
+    "request-promise": "^4.1.1",
     "serve-favicon": "~2.3.0"
   },
   "devDependencies": {

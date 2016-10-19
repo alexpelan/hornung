@@ -1,4 +1,4 @@
-var request = require('request');
+var request = require('request-promise');
 var cheerio = require('cheerio');
 var robots = require('robots');
 var parser = new robots.RobotsParser(null, {});
@@ -15,6 +15,10 @@ var parseAnswerFromMouseoverHandler = function($, $clue, startString) {
 		return;
 	}
 	var mouseoverHandler = $clue.find("div").first().attr("onmouseover");
+
+	if (!mouseoverHandler) {
+		return;
+	}
 	var startOfAnswer = mouseoverHandler.indexOf(startString);
 	var endOfAnswer = mouseoverHandler.indexOf("</em>");
 	var answer = mouseoverHandler.slice(startOfAnswer + startString.length, endOfAnswer);
@@ -170,6 +174,40 @@ var parseJeopardyGame = function(html){
 	};
 }
 
+var seedGame = function(gameId, delay, db) {	
+	return new Promise(function(resolve, reject) {
+		setTimeout(function() {
+			var url = "http://www.j-archive.com/showgame.php?game_id=" + gameId;
+			request(url).then(function(html) {
+				var gameJson = parseJeopardyGame(html)
+				var gamesCollection = db.collection("games");
+				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, function(err, result) {
+					resolve();
+				});
+			}).catch(function(error){
+				console.log("error requesting ", error);
+			});
+		}, delay * 1000);
+	});
+};
+
+var seedGames = function(gamesJson, delayPerRequest, db) {
+	var counter = 0;
+	var gamePromises = [];
+	gamesJson.forEach(function(gamesFromSingleSeason) {
+
+		gamesFromSingleSeason.forEach(function(game) {
+			var delay = delayPerRequest * counter;
+			counter = counter + 1;
+			gamePromises.push(seedGame(game.id, delay, db));
+		});
+
+	});
+
+	return gamePromises;
+};
+
+
 //
 // List of Games per season
 //
@@ -178,7 +216,7 @@ var parseJeopardySeason = function(html) {
 	var $ = cheerio.load(html);
 	
 	var seasonsTable = $("#content table");
-	var games = {};
+	var games = [];
 
 	seasonsTable.find("tr").each(function(index, element) {
 		var gameIdParam = "?game_id=";
@@ -186,12 +224,48 @@ var parseJeopardySeason = function(html) {
 		var gameIdIndex = url.lastIndexOf(gameIdParam);
 		var id = url.slice(gameIdIndex + gameIdParam.length);
 		var displayName = $(element).find("td").first().text().trim();
-		games[id] = ({displayName: displayName});
+		var newGame = {id: id, displayName: displayName};
+		games.push(newGame);
 	});
 
 	return {
 		games: games
 	};
+};
+
+var seedSeason = function(seasonId, delay, db) {
+	if (delay >= 20) { // short-circuit and just fetch the most recent season for testing
+		return new Promise(function(resolve, reject){
+			resolve([]);
+		}); 
+	}
+	return new Promise(function(resolve, reject) {
+		setTimeout(function() {
+			var url = "http://www.j-archive.com/showseason.php?season=" + seasonId;
+			request(url).then(function(html) {
+				var gamesJson = parseJeopardySeason(html).games;
+				gamesJson.forEach(function(game) {
+					game.season = seasonId;
+				});
+				var gamesCollection = db.collection("games");
+				gamesCollection.insertMany(gamesJson, function(err, result) {
+					resolve(gamesJson);
+				});
+			}).catch(function(error){
+				console.log("error requesting ", error);
+			});
+		}, delay * 1000);
+	});
+};
+
+var seedSeasons = function(seasonsJson, delayPerRequest, db) {
+	var seasonPromises = [];
+	seasonsJson.forEach(function(season, index){
+		var delay = delayPerRequest * index;
+		seasonPromises.push(seedSeason(season.id, delay, db));
+	});
+
+	return seasonPromises;
 };
 
 //
@@ -203,6 +277,7 @@ var parseSeasonList = function(html) {
 
 	var seasonsTable = $("#content table");
 	var seasons = [];
+	var counter = 0;
 
 	seasonsTable.find("tr").each(function(index, element) {
 		var seasonIdParam = "?season=";
@@ -210,7 +285,8 @@ var parseSeasonList = function(html) {
 		var gameIdIndex = url.lastIndexOf(seasonIdParam);
 		var id = url.slice(gameIdIndex + seasonIdParam.length);
 		var displayName = $(element).find("td").first().text().trim();
-		var newSeason = { id: id, displayName: displayName };
+		var newSeason = { id: id, displayName: displayName , sortNumber: counter};
+		counter = counter + 1;
 		seasons.push(newSeason);
 	});
 
@@ -223,20 +299,17 @@ var parseSeasonList = function(html) {
 var seedListOfSeasons = function(db) {
 	var url = "http://j-archive.com/listseasons.php";
 
-	request(url, function(error, response, html) {
-		if (!error) {
+	return new Promise(function (resolve, reject) {
+		request(url).then(function(html) {
 			var seasonsJson = parseSeasonList(html).seasons;
 			var seasonsCollection = db.collection("seasons");
-			console.log(seasonsJson)
 			seasonsCollection.insertMany(seasonsJson, function(err, result) {
-				console.log("was there an error ", err)
-				console.log("result was ", result)
-				db.close();
+				resolve(seasonsJson);
 			});
-		} else {
-			console.log(error);
-		}
-	});
+		}).catch(function(error){
+			console.log("error requesting ", error);
+		});
+    });
 
 };
 
@@ -253,57 +326,18 @@ MongoClient.connect(url, function(err, db) {
 		if(success) {
 			var delayInSeconds = parser.getCrawlDelay(USER_AGENT);
 
-			seedListOfSeasons(db);
-
-
+			seedListOfSeasons(db).then(function(seasonsJson) {
+				var promises = seedSeasons(seasonsJson, delayInSeconds, db)
+				Promise.all(promises).then(function(gamesJson){
+					Promise.all(seedGames(gamesJson, delayInSeconds, db)).then(function() {
+						db.close();
+					}).catch(function(error) {
+						console.log("error fetching list of games", error)
+					});
+				}).catch(function(error){
+					console.log("error fetching listOfSeasons ", error)
+				});
+			});
 		}
 	});
 });
-
-
-/*router.get('/games/:id', function(req, res) {
-
-	var id;
-	if (!req.params.id) {
-		id = "5002";
-	} else {
-		id = req.params.id;
-	}
-
-	var url = "http://www.j-archive.com/showgame.php?game_id=" + id;
-
-	request(url, function(error, response, html){
-		if(!error){
-			res.json(parseJeopardyGame(html));
-		}
-		else{
-			console.log(error);
-		}
-
-	});
-});
-
-router.get("/seasons/:id", function(req, res) {
-	var url = "http://www.j-archive.com/showseason.php?season=" + req.params.id;
-
-	request(url, function(error, response, html) {
-		if (!error) {
-			res.json(parseJeopardySeason(html));
-		} else {
-			console.log(error);
-		}
-	});
-});
-
-router.get("/", function(req, res) {
-	var url = "http://j-archive.com/listseasons.php";
-
-	request(url, function(error, response, html) {
-		if (!error) {
-			res.json(parseSeasonList(html));
-		} else {
-			console.log(error);
-		}
-	});
-
-});*/
