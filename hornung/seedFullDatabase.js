@@ -56,6 +56,8 @@ var parseMedia = function($, $clue) {
 var parseJeopardySubgame = function($, jeopardyDiv, dollarAmountDelta){
 	var game = {};
 	var categoryOrder = {};
+	var highestDollarAmount = 0;
+
 	game.categories = [];
 	//parse categories
 	jeopardyDiv.find(".category_name").each(function(index, element){
@@ -72,6 +74,9 @@ var parseJeopardySubgame = function($, jeopardyDiv, dollarAmountDelta){
 		var value = $(element).find(".clue_value").text().trim();
 		var isDailyDouble = false;
 
+		if (value && parseInt(value.slice(1)) > highestDollarAmount) {
+			highestDollarAmount = parseInt(value.slice(1));
+		}
 
 		var columnIndex = index % 6;
 		// if no value, it's a daily double. We can use gameName and the previous clue's value to figure it out (daily double will never be first in a category)
@@ -129,7 +134,7 @@ var parseJeopardySubgame = function($, jeopardyDiv, dollarAmountDelta){
 
 	});
 
-
+	game.highestDollarAmount = highestDollarAmount
 	return game;
 };
 
