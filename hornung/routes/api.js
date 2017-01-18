@@ -11,6 +11,7 @@ router.get('/games/:id', function(req, res) {
 	MongoClient.connect(url, function(err, db) {
 		var gamesCollection = db.collection("games");
 		gamesCollection.find({id: req.params.id}).toArray().then(function(results) {
+			console.log("results are ", results)
 			res.json(results[0]);
 			db.close();
 		});
