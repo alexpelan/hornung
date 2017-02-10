@@ -7,8 +7,10 @@ var bodyParser = require('body-parser');
 
 var routes = require('./routes/index');
 var api = require('./routes/api');
+var sha1 = require("sha1");
 
 var app = express();
+const SECRET = "DEFINITELY_NOT_USING_THIS_IN_PRODUCTION";
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -22,6 +24,35 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+const isTimeValid = (requestTime, currentTime) => {
+  let fiveMinutesAgo = new Date(currentTime);
+  fiveMinutesAgo = fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+  let fiveMinutesFromNow = new Date(currentTime);
+  fiveMinutesFromNow = fiveMinutesFromNow.setMinutes(fiveMinutesFromNow.getMinutes() + 5);
+  if (requestTime < fiveMinutesAgo  || requestTime > fiveMinutesFromNow) {
+    return false;
+  }
+  return true;
+};
+
+// auth - if they don't send us the right hash, reject the request!
+const authMiddleware = (req, res, next) => {
+  let error;
+  const hash = req.query.hash;
+  const time = req.query.time;
+  const fullUrl = req.protocol + "://" + req.hostname + ":3000" + req.path + SECRET + time; //FIXFIX: this won't work in production
+  const shaResult = sha1(fullUrl);
+  const hasValidTime = isTimeValid(time, Date.now())
+  if (shaResult !== hash || !hasValidTime) {
+    error = new Error("Error: not authorized");
+    error.status = 403;
+    next(error);
+  }
+  next();
+};
+
+app.use(authMiddleware);
+
 app.use('/', routes);
 app.use('/api', api);
 
@@ -31,6 +62,8 @@ app.use(function(req, res, next) {
   err.status = 404;
   next(err);
 });
+
+
 
 // error handlers
 
