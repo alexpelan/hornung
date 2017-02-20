@@ -45,11 +45,6 @@ var seedGames = function(gamesJson, delayPerRequest, db) {
 };
 
 var seedSeason = function(seasonId, delay, db) {
-	if (delay >= 20) { // short-circuit and just fetch the most recent season for testing
-		return new Promise(function(resolve, reject){
-			resolve([]);
-		}); 
-	}
 	return new Promise(function(resolve, reject) {
 		setTimeout(function() {
 			var url = "http://www.j-archive.com/showseason.php?season=" + seasonId;
