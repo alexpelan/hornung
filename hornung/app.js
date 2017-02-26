@@ -7,7 +7,7 @@ var bodyParser = require('body-parser');
 
 var routes = require('./routes/index');
 var api = require('./routes/api');
-var sha1 = require("sha1");
+var sha1 = require('sha1');
 
 var app = express();
 const SECRET = "DEFINITELY_NOT_USING_THIS_IN_PRODUCTION";

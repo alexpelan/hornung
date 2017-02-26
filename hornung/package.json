@@ -18,5 +18,8 @@
   },
   "devDependencies": {
     "robots": "^0.9.4"
-  }
+  },
+  "main": "index.js",
+  "author": "Alex Pelan",
+  "license": "MIT"
 }
