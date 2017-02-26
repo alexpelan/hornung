@@ -13,7 +13,8 @@
     "morgan": "~1.6.1",
     "request": "latest",
     "request-promise": "^4.1.1",
-    "serve-favicon": "~2.3.0"
+    "serve-favicon": "~2.3.0",
+    "sha1": "^1.1.1"
   },
   "devDependencies": {
     "robots": "^0.9.4"
