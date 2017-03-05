@@ -1,4 +1,3 @@
-# hornung
-to run, 
+To start the application, 
 
-    $ DEBUG=hornung ./bin/www
+DEBUG=hornung ./bin/www
