@@ -7,7 +7,7 @@ var jeopardyParser = require('./lib/JeopardyParser');
 var MongoClient = require('mongodb').MongoClient,
 	assert = require('assert');
 
-var url = 'mongodb://localhost:27017/test';
+var url = 'mongodb://localhost:27017/hornung'
 var USER_AGENT = "Alex Pelan (alexpelan@gmail.com)";
 var ROBOTS_URL = "http://www.j-archive.com/robots.txt";
 
