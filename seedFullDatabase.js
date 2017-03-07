@@ -19,10 +19,11 @@ var seedGame = function(gameId, delay, db) {
 				var gameJson = jeopardyParser.parseJeopardyGame(html)
 				var gamesCollection = db.collection("games");
 				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, function(err, result) {
+					console.log("updated game id ", gameId)
 					resolve();
 				});
 			}).catch(function(error){
-				console.log("error requesting ", error);
+				console.log("error requesting gameId is ", gameId, error);
 			});
 		}, delay * 1000);
 	});
@@ -91,6 +92,40 @@ var seedListOfSeasons = function(db) {
 
 };
 
+const seedFullDatabase = function(db, delayInSeconds) {
+	seedListOfSeasons(db).then(function(seasonsJson) {
+		var promises = seedSeasons(seasonsJson, delayInSeconds, db)
+		Promise.all(promises).then(function(gamesJson){
+			Promise.all(seedGames(gamesJson, delayInSeconds, db)).then(function() {
+				db.close();
+			}).catch(function(error) {
+				console.log("error fetching list of games", error)
+			});
+		}).catch(function(error){
+			console.log("error fetching listOfSeasons ", error)
+		});
+	});
+};
+
+
+// This assumes that the games are already in the db as shells
+const seedSingleSeason = function(db, delayInSeconds, seasonNumber) {
+	var gamesCollection = db.collection("games");
+	gamesCollection.find({season: seasonNumber}).toArray().then(function(results) {
+		let counter = 0;
+		var promises = results.map((game) => {
+			counter = counter + 1;
+			return seedGame(game.id, delayInSeconds * counter, db);
+		});
+		Promise.all(promises).then(function() {
+			console.log("done seeding single season with no errors");
+			db.close();
+		}).catch(function(error) {
+			console.log("error resolving seedGame promises ", error);
+		});
+	});
+};
+
 MongoClient.connect(url, function(err, db) {
 	assert.equal(null, err);
 	var requestOptions = {
@@ -100,22 +135,19 @@ MongoClient.connect(url, function(err, db) {
 		}
 	};
 
+	const shouldSeedFullDatabase = process.argv.length === 2;
+	const shouldSeedSingleSeason = process.argv.length === 3;
+
 	parser.setUrl(ROBOTS_URL, function(parser, success) {
 		if(success) {
 			var delayInSeconds = parser.getCrawlDelay(USER_AGENT);
+			if (shouldSeedFullDatabase) {
+				seedFullDatabase(db, delayInSeconds);
+			} else if (shouldSeedSingleSeason) {
+				const seasonNumber = process.argv[2];
+				seedSingleSeason(db, delayInSeconds, seasonNumber);
+			}
 
-			seedListOfSeasons(db).then(function(seasonsJson) {
-				var promises = seedSeasons(seasonsJson, delayInSeconds, db)
-				Promise.all(promises).then(function(gamesJson){
-					Promise.all(seedGames(gamesJson, delayInSeconds, db)).then(function() {
-						db.close();
-					}).catch(function(error) {
-						console.log("error fetching list of games", error)
-					});
-				}).catch(function(error){
-					console.log("error fetching listOfSeasons ", error)
-				});
-			});
 		}
 	});
 });

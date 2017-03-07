@@ -5,7 +5,7 @@ var router = express.Router();
 var MongoClient = require('mongodb').MongoClient,
 	assert = require('assert');
 
-var url = 'mongodb://localhost:27017/test';
+var url = 'mongodb://localhost:27017/hornung';
 
 
 router.get('/games/:id', function(req, res) {
