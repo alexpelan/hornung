@@ -2,7 +2,8 @@ var request = require('request-promise');
 var cheerio = require('cheerio');
 var robots = require('robots');
 var parser = new robots.RobotsParser(null, {});
-var jeopardyParser = require('./lib/JeopardyParser');
+var jeopardyParser = require('../lib/JeopardyParser');
+var argv = require('yargs').argv;
 
 var MongoClient = require('mongodb').MongoClient,
 	assert = require('assert');
@@ -126,6 +127,24 @@ const seedSingleSeason = function(db, delayInSeconds, seasonNumber) {
 	});
 };
 
+// Finds every game without a jeopardy attribute and fills out the game
+const finishIncomplete = function(db, delayInSeconds) {
+	const gamesCollection = db.collection("games");
+	gamesCollection.find({jeopardy: {$exists: false}}).toArray().then(function(results) {
+		let counter = 0;
+		let promises = results.map((game) => {
+			counter = counter + 1;
+			return seedGame(game.id, delayInSeconds * counter, db);
+		});
+		Promise.all(promises).then(function() {
+			console.log("done seeding all reamining games with no errors");
+			db.close();
+		}).catch(function(error) {
+			console.log("error resolving seedGame promises in finishIncomplete ", error);
+		});
+	});
+};
+
 MongoClient.connect(url, function(err, db) {
 	assert.equal(null, err);
 	var requestOptions = {
@@ -135,8 +154,9 @@ MongoClient.connect(url, function(err, db) {
 		}
 	};
 
-	const shouldSeedFullDatabase = process.argv.length === 2;
-	const shouldSeedSingleSeason = process.argv.length === 3;
+	const shouldSeedSingleSeason = argv.season;
+	const shouldFinishIncomplete = argv.incomplete;
+	const shouldSeedFullDatabase = !shouldFinishIncomplete && !shouldFinishIncomplete
 
 	parser.setUrl(ROBOTS_URL, function(parser, success) {
 		if(success) {
@@ -144,8 +164,10 @@ MongoClient.connect(url, function(err, db) {
 			if (shouldSeedFullDatabase) {
 				seedFullDatabase(db, delayInSeconds);
 			} else if (shouldSeedSingleSeason) {
-				const seasonNumber = process.argv[2];
+				const seasonNumber = argv.season
 				seedSingleSeason(db, delayInSeconds, seasonNumber);
+			} else if (shouldFinishIncomplete) {
+				finishIncomplete(db, delayInSeconds);
 			}
 
 		}

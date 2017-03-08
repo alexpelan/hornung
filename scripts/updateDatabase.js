@@ -2,7 +2,7 @@ var request = require('request-promise');
 var cheerio = require('cheerio');
 var robots = require('robots');
 var parser = new robots.RobotsParser(null, {});
-var jeopardyParser = require('./lib/JeopardyParser');
+var jeopardyParser = require('../lib/JeopardyParser');
 
 var MongoClient = require('mongodb').MongoClient,
 	assert = require('assert');
