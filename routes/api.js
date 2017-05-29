@@ -40,10 +40,16 @@ router.get("/seasons/:id", function(req, res) {
 router.get("/", function(req, res) {
 	MongoClient.connect(url, function(err, db) {
 		var seasonsCollection = db.collection("seasons");
-		seasonsCollection.find({}).sort({sortNumber: -1}).toArray().then(function(result){
+		seasonsCollection.find({}).sort({sortNumber: -1}).toArray().then(function(results){
+			// On the front end, the fetch API's response.json() seems to transform
+			// anything named 'id' into a number (but still a string, like '0'?)
+			// very odd - anyway it doesn't mess with seasonId so we use that
+			results.forEach((result) => {
+				result.seasonId = result.id
+			});
 			res.json({
 				"status": "ok",
-				seasons: result
+				seasons: results
 			});
 			db.close();
 		});
