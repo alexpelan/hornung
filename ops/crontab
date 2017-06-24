@@ -1,0 +1,1 @@
+30 03 01 Jan,Apr,Jul,Oct * certbot renew --pre-hook "service nginx stop" --post-hook "service nginx start"
