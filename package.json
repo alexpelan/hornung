@@ -7,6 +7,7 @@
     "cheerio": "latest",
     "cookie-parser": "~1.3.5",
     "debug": "~2.2.0",
+    "dotenv": "^4.0.0",
     "ejs": "~2.3.3",
     "express": "~4.13.1",
     "mongodb": "^2.2.10",
@@ -28,8 +29,8 @@
     "node": "7.9.0"
   },
   "scripts": {
-    "pretest": "eslint scripts lib spec app.js",
-    "test": "jasmine-node spec/ --verbose --captureExceptions"
+    "pretest": "eslint scripts lib spec routes app.js",
+    "test": "NODE_ENV=test jasmine-node spec/ --verbose --captureExceptions"
   },
   "main": "index.js",
   "author": "Alex Pelan",

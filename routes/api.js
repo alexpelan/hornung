@@ -1,14 +1,12 @@
-var express = require('express');
-var request = require('request');
+var express = require("express");
 var router = express.Router();
 
-var MongoClient = require('mongodb').MongoClient,
-	assert = require('assert');
+var MongoClient = require("mongodb").MongoClient;
 
-var url = 'mongodb://localhost:27017/hornung';
+var url = process.env.DB_URL;
 
 
-router.get('/games/:id', function(req, res) {
+router.get("/games/:id", function(req, res) {
 	MongoClient.connect(url, function(err, db) {
 		var gamesCollection = db.collection("games");
 		gamesCollection.find({id: req.params.id}).toArray().then(function(results) {
@@ -31,7 +29,7 @@ router.get("/seasons/:id", function(req, res) {
 			res.json({
 				status: "ok",
 				games: transformedResults
-			})
+			});
 			db.close();
 		});
 	});
@@ -45,7 +43,7 @@ router.get("/", function(req, res) {
 			// anything named 'id' into a number (but still a string, like '0'?)
 			// very odd - anyway it doesn't mess with seasonId so we use that
 			results.forEach((result) => {
-				result.seasonId = result.id
+				result.seasonId = result.id;
 			});
 			res.json({
 				"status": "ok",
@@ -62,8 +60,8 @@ router.post("/dispute", function(req, res) {
 
 	MongoClient.connect(url, function(err, db) {
 		var disputeData = JSON.parse(Object.keys(req.body)[0]); //no idea why it formats it as {JSONBODY: ""} when posting JSON via fetch
-		var disputeCollection = db.collection("disputes")
-		disputeCollection.insert(disputeData).then(function(err, result) {
+		var disputeCollection = db.collection("disputes");
+		disputeCollection.insert(disputeData).then(function() {
 			res.json({
 				"status": "ok"
 			});

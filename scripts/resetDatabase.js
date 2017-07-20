@@ -1,7 +1,8 @@
+require("dotenv").config({ path: "./env." + process.env.NODE_ENV });
 var MongoClient = require("mongodb").MongoClient,
 	assert = require("assert");
 
-var url = "mongodb://localhost:27017/test";
+var url = process.env.DB_URL;
 
 //Mostly should be used for testing! You probably don't want to do this
 MongoClient.connect(url, function(err, db) {

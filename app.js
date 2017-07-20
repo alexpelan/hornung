@@ -1,3 +1,4 @@
+require("dotenv").config({ path: "./env." + process.env.NODE_ENV });
 var express = require("express");
 var path = require("path");
 var logger = require("morgan");
@@ -9,7 +10,7 @@ var api = require("./routes/api");
 var sha1 = require("sha1");
 
 var app = express();
-const SECRET = "DEFINITELY_NOT_USING_THIS_IN_PRODUCTION";
+const SECRET = process.env.SECRET;
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));

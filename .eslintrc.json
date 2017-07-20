@@ -9,7 +9,8 @@
         "describe": true,
         "it": true,
         "expect": true,
-        "__dirname": true
+        "__dirname": true,
+        "process": true
     },
     "rules": {
         "indent": [

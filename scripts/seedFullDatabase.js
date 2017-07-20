@@ -1,3 +1,4 @@
+require("dotenv").config({ path: "./env." + process.env.NODE_ENV });
 var request = require("request-promise");
 require("cheerio");
 var robots = require("robots");
@@ -8,7 +9,7 @@ var argv = require("yargs").argv;
 var MongoClient = require("mongodb").MongoClient,
 	assert = require("assert");
 
-var url = "mongodb://localhost:27017/hornung";
+var url = process.env.DB_URL;
 var USER_AGENT = "Alex Pelan (alexpelan@gmail.com)";
 var ROBOTS_URL = "http://www.j-archive.com/robots.txt";
 
