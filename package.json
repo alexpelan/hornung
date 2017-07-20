@@ -17,8 +17,12 @@
     "sha1": "^1.1.1"
   },
   "devDependencies": {
+    "jasmine-node": "^1.14.5",
     "robots": "^0.9.4",
     "yargs": "^7.0.1"
+  },
+  "scripts": {
+    "test": "jasmine-node spec/ --verbose --captureExceptions"
   },
   "main": "index.js",
   "author": "Alex Pelan",
