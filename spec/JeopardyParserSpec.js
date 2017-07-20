@@ -12,7 +12,7 @@ const countDailyDoubles = function(game) {
 		});
 	});
 	return dailyDoubleCount;
-}
+};
 
 describe("JeopardyParser", function() {
 		
@@ -36,7 +36,7 @@ describe("JeopardyParser", function() {
 				expect(categoryNames).toContain("3 DIMENSIONAL");
 				expect(categoryNames).toContain("WEBBY AWARD WINNERS");
 				expect(categoryNames).toContain("ARGUMENT");
-				expect(categoryNames).toContain('"-ED" HOMONYM');
+				expect(categoryNames).toContain("\"-ED\" HOMONYM");
 
 				// clues are parsed correctly
 				const oneClue = result.jeopardy.categories[0].clues[0];
@@ -61,7 +61,7 @@ describe("JeopardyParser", function() {
 
 				// final jeopardy has one category with a single question and answer
 				expect(result.final_jeopardy.categories[0].name).toEqual("THE ACADEMY AWARDS");
-				expect(result.final_jeopardy.categories[0].question).toEqual("He holds the record for time between acting nominations for the same role, 39 years between 1976 & 2015 films")
+				expect(result.final_jeopardy.categories[0].question).toEqual("He holds the record for time between acting nominations for the same role, 39 years between 1976 & 2015 films");
 				expect(result.final_jeopardy.categories[0].answer).toEqual("Sylvester Stallone");
 
 				done();
@@ -82,7 +82,7 @@ describe("JeopardyParser", function() {
 				const singleGame = result.games[0];
 				expect(result.games.length).toBe(222);
 
-				expect(singleGame.id).toEqual('5739');
+				expect(singleGame.id).toEqual("5739");
 				expect(singleGame.displayName).toEqual("#7577, aired 2017-07-18");
 
 				done();

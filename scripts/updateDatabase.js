@@ -1,24 +1,24 @@
-var request = require('request-promise');
-var cheerio = require('cheerio');
-var robots = require('robots');
+var request = require("request-promise");
+require("cheerio");
+var robots = require("robots");
 var parser = new robots.RobotsParser(null, {});
-var jeopardyParser = require('../lib/JeopardyParser');
+var jeopardyParser = require("../lib/JeopardyParser");
 
-var MongoClient = require('mongodb').MongoClient,
-	assert = require('assert');
+var MongoClient = require("mongodb").MongoClient,
+	assert = require("assert");
 
-var url = 'mongodb://localhost:27017/hornung';
+var url = "mongodb://localhost:27017/hornung";
 var USER_AGENT = "Alex Pelan (alexpelan@gmail.com)";
 var ROBOTS_URL = "http://www.j-archive.com/robots.txt";
 
 var createOrUpdateGame = function(db, delay, gameId) {	
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		setTimeout(function() {
 			var url = "http://www.j-archive.com/showgame.php?game_id=" + gameId;
 			request(url).then(function(html) {
-				var gameJson = jeopardyParser.parseJeopardyGame(html)
+				var gameJson = jeopardyParser.parseJeopardyGame(html);
 				var gamesCollection = db.collection("games");
-				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, {upsert: true}, function(err, result) {
+				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, {upsert: true}, function() {
 					resolve();
 				});
 			}).catch(function(error){
@@ -42,7 +42,7 @@ var createOrUpdateGames = function(db, delayPerRequest, gamesJson) {
 };
 
 const fetchLatestSeasonGames = function(db, delayPerRequest, seasonId) {
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		setTimeout(function() {
 			var url = "http://www.j-archive.com/showseason.php?season=" + seasonId;
 			request(url).then(function(html) {
@@ -58,30 +58,31 @@ const fetchLatestSeasonGames = function(db, delayPerRequest, seasonId) {
 	});
 };
 
-const findLatestSeasonId = function(db) {
+const findLatestSeasonId = function() {
 	var url = "http://j-archive.com/listseasons.php";
 
-	return new Promise(function (resolve, reject) {
+	return new Promise(function (resolve) {
 		request(url).then(function(html) {
 			var seasonsJson = jeopardyParser.parseSeasonList(html).seasons;
 			resolve(seasonsJson[0].id);
 		}).catch(function(error){
 			console.log("error requesting ", error);
 		});
-    });
+	});
 
 };
 
-// Fetch the most recent season and add whatever games we don't have already. 
+// Fetch the most recent season and add whatever games we don"t have already. 
 
 MongoClient.connect(url, function(err, db) {
 	assert.equal(null, err);
-	var requestOptions = {
-		url: "",
-		headers: {
-			"User-Agent": USER_AGENT//be kind
-		}
-	};
+	// FIXFIX: should we use these again?
+	// var requestOptions = {
+	// 	url: "",
+	// 	headers: {
+	// 		"User-Agent": USER_AGENT//be kind
+	// 	}
+	// };
 
 	parser.setUrl(ROBOTS_URL, function(parser, success) {
 		if(success) {
@@ -94,8 +95,8 @@ MongoClient.connect(url, function(err, db) {
 					});
 				});
 
-			}).catch(function(error) {
-				console.log("error fetching latest season")
+			}).catch(function() {
+				console.log("error fetching latest season");
 			});
 		}
 	});

@@ -1,30 +1,27 @@
-var request = require('request-promise');
-var cheerio = require('cheerio');
-var robots = require('robots');
+var request = require("request-promise");
+require("cheerio");
+var robots = require("robots");
 var parser = new robots.RobotsParser(null, {});
-var jeopardyParser = require('../lib/JeopardyParser');
-var argv = require('yargs').argv;
+var jeopardyParser = require("../lib/JeopardyParser");
+var argv = require("yargs").argv;
 
-var MongoClient = require('mongodb').MongoClient,
-	assert = require('assert');
+var MongoClient = require("mongodb").MongoClient,
+	assert = require("assert");
 
-var url = 'mongodb://localhost:27017/hornung'
+var url = "mongodb://localhost:27017/hornung";
 var USER_AGENT = "Alex Pelan (alexpelan@gmail.com)";
 var ROBOTS_URL = "http://www.j-archive.com/robots.txt";
 
 var seedGame = function(gameId, delay, db) {	
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		setTimeout(function() {
 			var url = "http://www.j-archive.com/showgame.php?game_id=" + gameId;
 			request(url).then(function(html) {
-				var gameJson = jeopardyParser.parseJeopardyGame(html)
+				var gameJson = jeopardyParser.parseJeopardyGame(html);
 				var gamesCollection = db.collection("games");
-				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, function(err, result) {
-					console.log("updated game id ", gameId)
+				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, function() {
 					resolve();
 				});
-			}).catch(function(error){
-				console.log("error requesting gameId is ", gameId, error);
 			});
 		}, delay * 1000);
 	});
@@ -47,7 +44,7 @@ var seedGames = function(gamesJson, delayPerRequest, db) {
 };
 
 var seedSeason = function(seasonId, delay, db) {
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		setTimeout(function() {
 			var url = "http://www.j-archive.com/showseason.php?season=" + seasonId;
 			request(url).then(function(html) {
@@ -56,7 +53,7 @@ var seedSeason = function(seasonId, delay, db) {
 					game.season = seasonId;
 				});
 				var gamesCollection = db.collection("games");
-				gamesCollection.insertMany(gamesJson, function(err, result) {
+				gamesCollection.insertMany(gamesJson, function() {
 					resolve(gamesJson);
 				});
 			}).catch(function(error){
@@ -79,31 +76,31 @@ var seedSeasons = function(seasonsJson, delayPerRequest, db) {
 var seedListOfSeasons = function(db) {
 	var url = "http://j-archive.com/listseasons.php";
 
-	return new Promise(function (resolve, reject) {
+	return new Promise(function (resolve) {
 		request(url).then(function(html) {
 			var seasonsJson = jeopardyParser.parseSeasonList(html).seasons;
 			var seasonsCollection = db.collection("seasons");
-			seasonsCollection.insertMany(seasonsJson, function(err, result) {
+			seasonsCollection.insertMany(seasonsJson, function() {
 				resolve(seasonsJson);
 			});
 		}).catch(function(error){
 			console.log("error requesting ", error);
 		});
-    });
+	});
 
 };
 
 const seedFullDatabase = function(db, delayInSeconds) {
 	seedListOfSeasons(db).then(function(seasonsJson) {
-		var promises = seedSeasons(seasonsJson, delayInSeconds, db)
+		var promises = seedSeasons(seasonsJson, delayInSeconds, db);
 		Promise.all(promises).then(function(gamesJson){
 			Promise.all(seedGames(gamesJson, delayInSeconds, db)).then(function() {
 				db.close();
 			}).catch(function(error) {
-				console.log("error fetching list of games", error)
+				console.log("error fetching list of games", error);
 			});
 		}).catch(function(error){
-			console.log("error fetching listOfSeasons ", error)
+			console.log("error fetching listOfSeasons ", error);
 		});
 	});
 };
@@ -147,16 +144,17 @@ const finishIncomplete = function(db, delayInSeconds) {
 
 MongoClient.connect(url, function(err, db) {
 	assert.equal(null, err);
-	var requestOptions = {
-		url: "",
-		headers: {
-			"User-Agent": USER_AGENT//be kind
-		}
-	};
+	// FIXFIX: should this be used?
+	// var requestOptions = {
+	// 	url: "",
+	// 	headers: {
+	// 		"User-Agent": USER_AGENT//be kind
+	// 	}
+	// };
 
 	const shouldSeedSingleSeason = argv.season;
 	const shouldFinishIncomplete = argv.incomplete;
-	const shouldSeedFullDatabase = !shouldFinishIncomplete && !shouldFinishIncomplete
+	const shouldSeedFullDatabase = !shouldFinishIncomplete && !shouldFinishIncomplete;
 
 	parser.setUrl(ROBOTS_URL, function(parser, success) {
 		if(success) {
@@ -164,7 +162,7 @@ MongoClient.connect(url, function(err, db) {
 			if (shouldSeedFullDatabase) {
 				seedFullDatabase(db, delayInSeconds);
 			} else if (shouldSeedSingleSeason) {
-				const seasonNumber = argv.season
+				const seasonNumber = argv.season;
 				seedSingleSeason(db, delayInSeconds, seasonNumber);
 			} else if (shouldFinishIncomplete) {
 				finishIncomplete(db, delayInSeconds);
