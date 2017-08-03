@@ -29,8 +29,9 @@
     "node": "7.9.0"
   },
   "scripts": {
-    "pretest": "eslint scripts lib spec routes app.js",
-    "test": "NODE_ENV=test jasmine-node spec/ --verbose --captureExceptions"
+    "pretest": "eslint scripts lib spec routes app.js; NODE_ENV=test node ./scripts/resetDatabase.js;",
+    "test": "NODE_ENV=test jasmine-node spec/ --verbose --captureExceptions",
+    "start_test": "NODE_ENV=test node ./app.js"
   },
   "main": "index.js",
   "author": "Alex Pelan",

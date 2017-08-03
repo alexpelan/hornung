@@ -5,7 +5,6 @@ var logger = require("morgan");
 var cookieParser = require("cookie-parser");
 var bodyParser = require("body-parser");
 
-var routes = require("./routes/index");
 var api = require("./routes/api");
 var sha1 = require("sha1");
 
@@ -45,13 +44,13 @@ const authMiddleware = (req, res, next) => {
 		error = new Error("Error: not authorized");
 		error.status = 403;
 		next(error);
+	} else {
+		next();
 	}
-	next();
 };
 
 app.use(authMiddleware);
 
-app.use("/", routes);
 app.use("/api", api);
 
 // catch 404 and forward to error handler

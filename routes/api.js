@@ -1,9 +1,9 @@
-var express = require("express");
-var router = express.Router();
+const express = require("express");
+const router = express.Router();
 
-var MongoClient = require("mongodb").MongoClient;
+const MongoClient = require("mongodb").MongoClient;
 
-var url = process.env.DB_URL;
+const url = process.env.DB_URL;
 
 
 router.get("/games/:id", function(req, res) {
