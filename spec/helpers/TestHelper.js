@@ -17,6 +17,19 @@ const TestHelper = {
 				});
 			});
 		});
+	},
+
+	createSeasons: function() {
+		return new Promise(function(resolve) {
+			MongoClient.connect(url, function(err, db) {
+				const seasonList = Factory.seasonList();
+				const seasonsCollection = db.collection("seasons");
+				seasonsCollection.insertMany(seasonList.seasons, function() {
+					db.close();
+					resolve(seasonList);
+				});
+			});
+		});
 	}
 };
 

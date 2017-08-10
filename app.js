@@ -10,6 +10,7 @@ var sha1 = require("sha1");
 
 var app = express();
 const SECRET = process.env.SECRET;
+const BASE_URL = process.env.BASE_URL;
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -37,7 +38,7 @@ const authMiddleware = (req, res, next) => {
 	let error;
 	const hash = req.query.hash;
 	const time = req.query.time;
-	const fullUrl = "https://" + req.hostname + req.path + SECRET + time; //FIXFIX: dev/productoin configuration
+	const fullUrl = BASE_URL + req.path + SECRET + time; //FIXFIX: dev/productoin configuration
 	const shaResult = sha1(fullUrl);
 	const hasValidTime = isTimeValid(time, Date.now());
 	if (shaResult !== hash || !hasValidTime) {
