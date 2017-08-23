@@ -59,9 +59,12 @@ router.get("/", function(req, res) {
 router.post("/dispute", function(req, res) {
 
 	MongoClient.connect(url, function(err, db) {
-		var disputeData = JSON.parse(Object.keys(req.body)[0]); //no idea why it formats it as {JSONBODY: ""} when posting JSON via fetch
 		var disputeCollection = db.collection("disputes");
-		disputeCollection.insert(disputeData).then(function() {
+		const disputeJson = {
+			clue: req.body.clue,
+			userAnswer: req.body.userAnswer
+		};
+		disputeCollection.insert(disputeJson).then(function() {
 			res.json({
 				"status": "ok"
 			});

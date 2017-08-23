@@ -60,7 +60,19 @@ describe("API", function() {
 		});
 	});
 
-	//FIXFIX: dispute needs to be fixed on the front end, it looks like.
-
+	it("should return ok and save the dispute from the /dispute route (POST)", (done) => {
+		request({
+			url: getRequestUrlWithHash("api/dispute/"),
+			method: "POST",
+			json: true,
+			headers: {
+				"content-type": "application/json",
+			},
+			body: {clue: { value: "$800", question: "Some question", answer: "An answer", isDailyDouble: false}, userAnswer: "Close to the answer but not quite"}
+		}, (error, response, body) => {
+			expect(body.status).toEqual("ok");
+			done();
+		});
+	});
 
 });
