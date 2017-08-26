@@ -5,8 +5,9 @@ var logger = require("morgan");
 var cookieParser = require("cookie-parser");
 var bodyParser = require("body-parser");
 
-var api = require("./routes/api");
-var sha1 = require("sha1");
+const api = require("./routes/api");
+const sha1 = require("sha1");
+const testRoutes = require("./spec/routes/test");
 
 var app = express();
 const SECRET = process.env.SECRET;
@@ -35,6 +36,11 @@ const isTimeValid = (requestTime, currentTime) => {
 
 // auth - if they don't send us the right hash, reject the request!
 const authMiddleware = (req, res, next) => {
+	if (req.path.includes("/test/")) {
+		next();
+		return;
+	}
+
 	let error;
 	const hash = req.query.hash;
 	const time = req.query.time;
@@ -54,6 +60,11 @@ app.use(authMiddleware);
 
 app.use("/api", api);
 
+//Routes used only by the tests
+if (app.get("env") === "test") {
+	app.use("/test", testRoutes);
+}
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
 	var err = new Error("Not Found");
@@ -67,6 +78,7 @@ app.use(function(req, res, next) {
 
 // development error handler
 // will print stacktrace
+
 if (app.get("env") === "development") {
 	app.use(function(err, req, res) {
 		res.status(err.status || 500);
@@ -86,6 +98,7 @@ app.use(function(err, req, res) {
 		error: {}
 	});
 });
+
 
 app.listen(3001, () => {
 	console.log("Starting hornung server...");

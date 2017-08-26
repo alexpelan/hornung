@@ -16,7 +16,7 @@ var ROBOTS_URL = "http://www.j-archive.com/robots.txt";
 var seedGame = function(gameId, delay, db) {	
 	return new Promise(function(resolve) {
 		setTimeout(function() {
-			var url = "http://www.j-archive.com/showgame.php?game_id=" + gameId;
+			var url = process.env.GAME_URL + gameId;
 			request(url).then(function(html) {
 				var gameJson = jeopardyParser.parseJeopardyGame(html);
 				var gamesCollection = db.collection("games");
@@ -47,7 +47,7 @@ var seedGames = function(gamesJson, delayPerRequest, db) {
 var seedSeason = function(seasonId, delay, db) {
 	return new Promise(function(resolve) {
 		setTimeout(function() {
-			var url = "http://www.j-archive.com/showseason.php?season=" + seasonId;
+			var url = process.env.SEASON_URL + seasonId;
 			request(url).then(function(html) {
 				var gamesJson = jeopardyParser.parseJeopardySeason(html).games;
 				gamesJson.forEach(function(game) {
@@ -75,7 +75,7 @@ var seedSeasons = function(seasonsJson, delayPerRequest, db) {
 };
 
 var seedListOfSeasons = function(db) {
-	var url = "http://j-archive.com/listseasons.php";
+	var url = process.env.LIST_SEASONS_URL;
 
 	return new Promise(function (resolve) {
 		request(url).then(function(html) {
@@ -172,3 +172,9 @@ MongoClient.connect(url, function(err, db) {
 		}
 	});
 });
+
+module.exports = {
+	seedGame,
+	seedListOfSeasons,
+	seedSeason
+};
