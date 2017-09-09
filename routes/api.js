@@ -45,6 +45,7 @@ router.get("/", function(req, res) {
 			results.forEach((result) => {
 				result.seasonId = result.id;
 			});
+
 			res.json({
 				"status": "ok",
 				seasons: results

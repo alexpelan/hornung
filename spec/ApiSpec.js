@@ -51,6 +51,7 @@ describe("API", function() {
 	});
 
 	it("should return all seasons from the / route", (done) => {
+
 		TestHelper.createSeasons().then((seasons) => {
 			request(getRequestUrlWithHash("api/"), (error, response, body) => {
 				const jsonResponse = JSON.parse(body);

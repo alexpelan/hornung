@@ -1,7 +1,7 @@
 require("dotenv").config({ path: "./env." + process.env.NODE_ENV });
 const MongoClient = require("mongodb").MongoClient;
 const Factory = require("./Factory");
-
+const resetDatabase = require("../../scripts/resetDatabase");
 const url = process.env.DB_URL;
 
 const TestHelper = {
@@ -24,10 +24,13 @@ const TestHelper = {
 			MongoClient.connect(url, function(err, db) {
 				const seasonList = Factory.seasonList();
 				const seasonsCollection = db.collection("seasons");
-				seasonsCollection.insertMany(seasonList.seasons, function() {
-					db.close();
-					resolve(seasonList);
+				resetDatabase(db, false).then(() => {
+					seasonsCollection.insertMany(seasonList.seasons, function() {
+						db.close();
+						resolve(seasonList);
+					});
 				});
+
 			});
 		});
 	}

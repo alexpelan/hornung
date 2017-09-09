@@ -104,4 +104,7 @@ app.listen(3001, () => {
 	console.log("Starting hornung server...");
 });
 
+
+process.title = "hornung"; // we use this to kill it in npm run posttest
+
 module.exports = app;
