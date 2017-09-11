@@ -11,9 +11,11 @@ const TestHelper = {
 			MongoClient.connect(url, function(err, db) {
 				const game = Factory.game();
 				const gamesCollection = db.collection("games");
-				gamesCollection.insertOne(game, function() {
-					db.close();
-					resolve(game);
+				resetDatabase(db, false).then(() => {
+					gamesCollection.insertOne(game, function() {
+						db.close();
+						resolve(game);
+					});
 				});
 			});
 		});
