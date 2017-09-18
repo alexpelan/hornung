@@ -143,38 +143,41 @@ const finishIncomplete = function(db, delayInSeconds) {
 	});
 };
 
-MongoClient.connect(url, function(err, db) {
-	assert.equal(null, err);
-	// FIXFIX: should this be used?
-	// var requestOptions = {
-	// 	url: "",
-	// 	headers: {
-	// 		"User-Agent": USER_AGENT//be kind
-	// 	}
-	// };
+const main = function() {
+	MongoClient.connect(url, function(err, db) {
+		assert.equal(null, err);
+		// FIXFIX: should this be used?
+		// var requestOptions = {
+		// 	url: "",
+		// 	headers: {
+		// 		"User-Agent": USER_AGENT//be kind
+		// 	}
+		// };
 
-	const shouldSeedSingleSeason = argv.season;
-	const shouldFinishIncomplete = argv.incomplete;
-	const shouldSeedFullDatabase = !shouldFinishIncomplete && !shouldFinishIncomplete;
+		const shouldSeedSingleSeason = argv.season;
+		const shouldFinishIncomplete = argv.incomplete;
+		const shouldSeedFullDatabase = !shouldFinishIncomplete && !shouldFinishIncomplete;
+		parser.setUrl(ROBOTS_URL, function(parser, success) {
+			if(success) {
+				var delayInSeconds = parser.getCrawlDelay(USER_AGENT);
+				if (shouldSeedFullDatabase) {
+					seedFullDatabase(db, delayInSeconds);
+				} else if (shouldSeedSingleSeason) {
+					const seasonNumber = argv.season;
+					seedSingleSeason(db, delayInSeconds, seasonNumber);
+				} else if (shouldFinishIncomplete) {
+					finishIncomplete(db, delayInSeconds);
+				}
 
-	parser.setUrl(ROBOTS_URL, function(parser, success) {
-		if(success) {
-			var delayInSeconds = parser.getCrawlDelay(USER_AGENT);
-			if (shouldSeedFullDatabase) {
-				seedFullDatabase(db, delayInSeconds);
-			} else if (shouldSeedSingleSeason) {
-				const seasonNumber = argv.season;
-				seedSingleSeason(db, delayInSeconds, seasonNumber);
-			} else if (shouldFinishIncomplete) {
-				finishIncomplete(db, delayInSeconds);
 			}
-
-		}
+		});
 	});
-});
+
+};
 
 module.exports = {
 	seedGame,
 	seedListOfSeasons,
-	seedSeason
+	seedSeason,
+	main,
 };
