@@ -1,4 +1,7 @@
 language: node_js
 services: mongodb
+# ignore git submodules, right now we just use them for production configuration
+git:
+  submodules: false
 node_js:
   - "7"
