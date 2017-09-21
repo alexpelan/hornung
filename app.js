@@ -48,7 +48,7 @@ const authMiddleware = (req, res, next) => {
 	const shaResult = sha1(fullUrl);
 	const hasValidTime = isTimeValid(time, Date.now());
 	if (shaResult !== hash || !hasValidTime) {
-		error = new Error("Error: not authorized");
+		error = new Error("not authorized");
 		error.status = 403;
 		next(error);
 	} else {
@@ -100,7 +100,7 @@ app.use(function(err, req, res) {
 });
 
 
-app.listen(3001, () => {
+app.listen(3000, () => {
 	console.log("Starting hornung server...");
 });
 

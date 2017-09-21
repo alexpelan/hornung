@@ -3,3 +3,12 @@ os: linux
 files:
   - source: ./
     destination: /home/ubuntu/latest
+hooks:
+  ApplicationStart:
+    - location: start.sh
+      timeout: 300
+      runas: ubuntu
+  ApplicationStop:
+    - location: stop.sh
+      timeout: 300
+      runas: ubuntu
