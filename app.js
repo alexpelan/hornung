@@ -4,6 +4,7 @@ var path = require("path");
 var logger = require("morgan");
 var cookieParser = require("cookie-parser");
 var bodyParser = require("body-parser");
+const bugsnag = require("bugsnag");
 
 const api = require("./routes/api");
 const sha1 = require("sha1");
@@ -12,6 +13,10 @@ const testRoutes = require("./spec/routes/test");
 var app = express();
 const SECRET = process.env.SECRET;
 const BASE_URL = process.env.BASE_URL;
+
+if (process.env.NODE_ENV === "production") {
+	bugsnag.register("8c6c3e8de424b622023527da88f508ee");
+}
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -44,7 +49,7 @@ const authMiddleware = (req, res, next) => {
 	let error;
 	const hash = req.query.hash;
 	const time = req.query.time;
-	const fullUrl = BASE_URL + req.path + SECRET + time; //FIXFIX: dev/productoin configuration
+	const fullUrl = BASE_URL + req.path + SECRET + time;
 	const shaResult = sha1(fullUrl);
 	const hasValidTime = isTimeValid(time, Date.now());
 	if (shaResult !== hash || !hasValidTime) {
