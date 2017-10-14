@@ -4,7 +4,6 @@ require("cheerio");
 var robots = require("robots");
 var parser = new robots.RobotsParser(null, {});
 var jeopardyParser = require("../lib/JeopardyParser");
-var argv = require("yargs").argv;
 
 var MongoClient = require("mongodb").MongoClient,
 	assert = require("assert");
@@ -13,11 +12,19 @@ var url = process.env.DB_URL;
 var USER_AGENT = "Alex Pelan (alexpelan@gmail.com)";
 var ROBOTS_URL = "http://www.j-archive.com/robots.txt";
 
+let requestOptions = {
+	url: "",
+	headers: {
+		"User-Agent": USER_AGENT
+	}
+};
+
 var seedGame = function(gameId, delay, db) {	
 	return new Promise(function(resolve) {
 		setTimeout(function() {
 			var url = process.env.GAME_URL + gameId;
-			request(url).then(function(html) {
+			requestOptions.url = url;
+			request(requestOptions).then(function(html) {
 				var gameJson = jeopardyParser.parseJeopardyGame(html);
 				var gamesCollection = db.collection("games");
 				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, function() {
@@ -48,7 +55,8 @@ var seedSeason = function(seasonId, delay, db) {
 	return new Promise(function(resolve) {
 		setTimeout(function() {
 			var url = process.env.SEASON_URL + seasonId;
-			request(url).then(function(html) {
+			requestOptions.url = url;
+			request(requestOptions).then(function(html) {
 				var gamesJson = jeopardyParser.parseJeopardySeason(html).games;
 				gamesJson.forEach(function(game) {
 					game.season = seasonId;
@@ -76,9 +84,10 @@ var seedSeasons = function(seasonsJson, delayPerRequest, db) {
 
 var seedListOfSeasons = function(db) {
 	var url = process.env.LIST_SEASONS_URL;
+	requestOptions.url = url;
 
 	return new Promise(function (resolve) {
-		request(url).then(function(html) {
+		request(requestOptions).then(function(html) {
 			var seasonsJson = jeopardyParser.parseSeasonList(html).seasons;
 			var seasonsCollection = db.collection("seasons");
 			seasonsCollection.insertMany(seasonsJson, function() {
@@ -107,7 +116,6 @@ const seedFullDatabase = function(db, delayInSeconds) {
 };
 
 
-// This assumes that the games are already in the db as shells
 const seedSingleSeason = function(db, delayInSeconds, seasonNumber) {
 	var gamesCollection = db.collection("games");
 	gamesCollection.find({season: seasonNumber}).toArray().then(function(results) {
@@ -143,27 +151,20 @@ const finishIncomplete = function(db, delayInSeconds) {
 	});
 };
 
-const main = function() {
+const main = function(season) {
 	MongoClient.connect(url, function(err, db) {
 		assert.equal(null, err);
-		// FIXFIX: should this be used?
-		// var requestOptions = {
-		// 	url: "",
-		// 	headers: {
-		// 		"User-Agent": USER_AGENT//be kind
-		// 	}
-		// };
 
-		const shouldSeedSingleSeason = argv.season;
-		const shouldFinishIncomplete = argv.incomplete;
-		const shouldSeedFullDatabase = !shouldFinishIncomplete && !shouldFinishIncomplete;
+		const shouldSeedSingleSeason = season;
+		const shouldFinishIncomplete = false;//argv.incomplete;
+		const shouldSeedFullDatabase = false;//!shouldFinishIncomplete && !shouldFinishIncomplete;
 		parser.setUrl(ROBOTS_URL, function(parser, success) {
 			if(success) {
 				var delayInSeconds = parser.getCrawlDelay(USER_AGENT);
 				if (shouldSeedFullDatabase) {
 					seedFullDatabase(db, delayInSeconds);
 				} else if (shouldSeedSingleSeason) {
-					const seasonNumber = argv.season;
+					const seasonNumber = season;
 					seedSingleSeason(db, delayInSeconds, seasonNumber);
 				} else if (shouldFinishIncomplete) {
 					finishIncomplete(db, delayInSeconds);
