@@ -38,7 +38,7 @@ describe("J-Archive scraping scripts", function() {
 	});
 
 
-	it("seedListOfSeasons creates empty entries (basically just id and display name) for every season on the html page", (done) => {
+	it("seedListOfSeasons creates empty entries (basically just id and display name) for every season after season 30 on the html page", (done) => {
 
 		MongoClient.connect(url, function(err, db) {
 
@@ -46,7 +46,7 @@ describe("J-Archive scraping scripts", function() {
 				scraper.seedListOfSeasons(db).then(() => {
 					const seasonsCollection = db.collection("seasons");
 					seasonsCollection.find({}).toArray().then(function(results) {
-						expect(results.length).toEqual(35);
+						expect(results.length).toEqual(4);
 						resetDatabase(db, true).then(() =>  {
 							done();
 						});

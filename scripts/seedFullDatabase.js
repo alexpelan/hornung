@@ -4,6 +4,7 @@ require("cheerio");
 var robots = require("robots");
 var parser = new robots.RobotsParser(null, {});
 var jeopardyParser = require("../lib/JeopardyParser");
+const Queries = require("../lib/Queries");
 
 var MongoClient = require("mongodb").MongoClient,
 	assert = require("assert");
@@ -11,6 +12,7 @@ var MongoClient = require("mongodb").MongoClient,
 var url = process.env.DB_URL;
 var USER_AGENT = "Alex Pelan (alexpelan@gmail.com)";
 var ROBOTS_URL = "http://www.j-archive.com/robots.txt";
+const EARLIEST_SEASON = 30;
 
 let requestOptions = {
 	url: "",
@@ -35,6 +37,7 @@ var seedGame = function(gameId, delay, db) {
 	});
 };
 
+// gamesJson is an array of arrays of games
 var seedGames = function(gamesJson, delayPerRequest, db) {
 	var counter = 0;
 	var gamePromises = [];
@@ -51,7 +54,7 @@ var seedGames = function(gamesJson, delayPerRequest, db) {
 	return gamePromises;
 };
 
-var seedSeason = function(seasonId, delay, db) {
+var seedSeason = function(seasonId, delay, db, checkForExisting=false) {
 	return new Promise(function(resolve) {
 		setTimeout(function() {
 			var url = process.env.SEASON_URL + seasonId;
@@ -61,10 +64,15 @@ var seedSeason = function(seasonId, delay, db) {
 				gamesJson.forEach(function(game) {
 					game.season = seasonId;
 				});
-				var gamesCollection = db.collection("games");
-				gamesCollection.insertMany(gamesJson, function() {
-					resolve(gamesJson);
-				});
+
+				if (checkForExisting) {
+					insertNewGamesMetadata(db, gamesJson).then((gamesToFinish) => resolve(gamesToFinish));
+				} else {
+					var gamesCollection = db.collection("games");
+					gamesCollection.insertMany(gamesJson, function() {
+						resolve(gamesJson);
+					});				
+				}
 			}).catch(function(error){
 				console.log("error requesting ", error);
 			});
@@ -88,10 +96,13 @@ var seedListOfSeasons = function(db) {
 
 	return new Promise(function (resolve) {
 		request(requestOptions).then(function(html) {
-			var seasonsJson = jeopardyParser.parseSeasonList(html).seasons;
+			const seasonsJson = jeopardyParser.parseSeasonList(html).seasons;
+			const filteredSeasonsJson = seasonsJson.filter((season) => {
+				return parseInt(season.id) >= EARLIEST_SEASON;
+			});
 			var seasonsCollection = db.collection("seasons");
-			seasonsCollection.insertMany(seasonsJson, function() {
-				resolve(seasonsJson);
+			seasonsCollection.insertMany(filteredSeasonsJson, function() {
+				resolve(filteredSeasonsJson);
 			});
 		}).catch(function(error){
 			console.log("error requesting ", error);
@@ -115,70 +126,75 @@ const seedFullDatabase = function(db, delayInSeconds) {
 	});
 };
 
+const insertNewGamesMetadata = function(db, gamesJson) {
+	return new Promise(function(resolve) {
+		///fetch all the games
+		const gamesCollection = db.collection("games");
+		gamesCollection.find({}).toArray().then((gamesInDb) => {
+			// figure out which games aren't in the database.
+			let gamesToInsert = gamesJson.filter((game) => {
+				return gamesInDb.some((gameInDb) => {
+					return gameInDb.id === game.id;
+				});
+			});
 
-const seedSingleSeason = function(db, delayInSeconds, seasonNumber) {
-	var gamesCollection = db.collection("games");
-	gamesCollection.find({season: seasonNumber}).toArray().then(function(results) {
-		let counter = 0;
-		var promises = results.map((game) => {
-			counter = counter + 1;
-			return seedGame(game.id, delayInSeconds * counter, db);
+			// insert the ones that aren't
+			if (gamesToInsert.length > 0) {
+				gamesCollection.insertMany(gamesToInsert, function() {
+					resolve(gamesToInsert);
+				});
+			} else {
+				resolve();
+			}
+
 		});
-		Promise.all(promises).then(function() {
-			console.log("done seeding single season with no errors");
-			db.close();
-		}).catch(function(error) {
-			console.log("error resolving seedGame promises ", error);
-		});
+
 	});
+
 };
 
-// Finds every game without a jeopardy attribute and fills out the game
-const finishIncomplete = function(db, delayInSeconds) {
-	const gamesCollection = db.collection("games");
-	gamesCollection.find({jeopardy: {$exists: false}}).toArray().then(function(results) {
-		let counter = 0;
-		let promises = results.map((game) => {
-			counter = counter + 1;
-			return seedGame(game.id, delayInSeconds * counter, db);
-		});
-		Promise.all(promises).then(function() {
-			console.log("done seeding all reamining games with no errors");
-			db.close();
-		}).catch(function(error) {
-			console.log("error resolving seedGame promises in finishIncomplete ", error);
-		});
-	});
-};
+const checkForUpdates = function(db, delayInSeconds) {
+	// first, find any new games in the most recent season in the databse
+	Queries.findMostRecentSeason(db).then((result) => {
 
-const main = function(season) {
-	MongoClient.connect(url, function(err, db) {
-		assert.equal(null, err);
-
-		const shouldSeedSingleSeason = season;
-		const shouldFinishIncomplete = false;//argv.incomplete;
-		const shouldSeedFullDatabase = false;//!shouldFinishIncomplete && !shouldFinishIncomplete;
-		parser.setUrl(ROBOTS_URL, function(parser, success) {
-			if(success) {
-				var delayInSeconds = parser.getCrawlDelay(USER_AGENT);
-				if (shouldSeedFullDatabase) {
-					seedFullDatabase(db, delayInSeconds);
-				} else if (shouldSeedSingleSeason) {
-					const seasonNumber = season;
-					seedSingleSeason(db, delayInSeconds, seasonNumber);
-				} else if (shouldFinishIncomplete) {
-					finishIncomplete(db, delayInSeconds);
-				}
-
+		const checkForExisting = true;
+		seedSeason(result.toString(), delayInSeconds, db, checkForExisting).then((gamesToFinish)  => {
+			if (gamesToFinish) {
+				Promise.all(seedGames([gamesToFinish], delayInSeconds, db)).then(() => db.close());
+			} else {
+				// then, check for a new season, and if we find one, seed ALL games from that new season
+				db.close();
 			}
 		});
 	});
+};
 
+const executeTask = function(taskFunction) {
+	MongoClient.connect(url, function(err, db) {
+		assert.equal(null, err);
+
+		parser.setUrl(ROBOTS_URL, function(parser, success) {
+			if(success) {
+				var delayInSeconds = parser.getCrawlDelay(USER_AGENT);
+				taskFunction(db, delayInSeconds);
+			}
+		});
+	});
+};
+
+
+const firstTimeSetupEnvironment = function() {
+	executeTask(seedFullDatabase);
+};
+
+const updateEnvironment = function() {
+	executeTask(checkForUpdates);
 };
 
 module.exports = {
 	seedGame,
 	seedListOfSeasons,
 	seedSeason,
-	main,
+	firstTimeSetupEnvironment,
+	updateEnvironment,
 };
