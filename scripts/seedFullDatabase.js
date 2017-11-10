@@ -29,6 +29,7 @@ var seedGame = function(gameId, delay, db) {
 			request(requestOptions).then(function(html) {
 				var gameJson = jeopardyParser.parseJeopardyGame(html);
 				var gamesCollection = db.collection("games");
+				console.log("updating game ", gameId, " with ", gameJson);
 				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, function() {
 					resolve();
 				});
@@ -101,8 +102,11 @@ var seedListOfSeasons = function(db) {
 				return parseInt(season.id) >= EARLIEST_SEASON;
 			});
 			var seasonsCollection = db.collection("seasons");
-			seasonsCollection.insertMany(filteredSeasonsJson, function() {
-				resolve(filteredSeasonsJson);
+			// always do a complete removal
+			seasonsCollection.removeMany({}).then(() => {
+				seasonsCollection.insertMany(filteredSeasonsJson, function() {
+					resolve(filteredSeasonsJson);
+				});
 			});
 		}).catch(function(error){
 			console.log("error requesting ", error);
@@ -133,7 +137,7 @@ const insertNewGamesMetadata = function(db, gamesJson) {
 		gamesCollection.find({}).toArray().then((gamesInDb) => {
 			// figure out which games aren't in the database.
 			let gamesToInsert = gamesJson.filter((game) => {
-				return gamesInDb.some((gameInDb) => {
+				return !gamesInDb.some((gameInDb) => {
 					return gameInDb.id === game.id;
 				});
 			});
@@ -153,17 +157,64 @@ const insertNewGamesMetadata = function(db, gamesJson) {
 
 };
 
+const checkForNewSeason = function(db, delayInSeconds) {
+	let foundAnySeason = false;
+	var url = process.env.LIST_SEASONS_URL;
+	requestOptions.url = url;
+
+	return new Promise(function (resolve) {
+		setTimeout(() => {
+			request(requestOptions).then(function(html) {
+				const seasonsJson = jeopardyParser.parseSeasonList(html).seasons;
+				const filteredSeasonsJson = seasonsJson.filter((season) => {
+					return parseInt(season.id) >= EARLIEST_SEASON;
+				});
+				var seasonsCollection = db.collection("seasons");
+				seasonsCollection.find({}).toArray().then((seasonsInDb) => {
+					filteredSeasonsJson.forEach((seasonFromPage) => {
+						const foundNewSeason = !seasonsInDb.some((seasonInDb) => seasonInDb.id === seasonFromPage.id);
+						if (foundNewSeason) {
+							foundAnySeason = true;
+							seedListOfSeasons(db).then(() => {
+								seedSeason(seasonFromPage.id.toString(), delayInSeconds, db, false).then((gamesJson)  => {
+									if (gamesJson) {
+										Promise.all(seedGames([gamesJson], delayInSeconds, db)).then(() => {
+											db.close();
+											resolve();
+										});
+									}  else {
+										resolve();
+									}
+								});
+							});
+
+						} 
+					});
+
+					if (!foundAnySeason) {
+						resolve();
+					}
+				});
+			}).catch(function(error){
+				console.log("error requesting ", error);
+			});
+		}, delayInSeconds * 1000);
+	});
+};
+
 const checkForUpdates = function(db, delayInSeconds) {
-	// first, find any new games in the most recent season in the databse
 	Queries.findMostRecentSeason(db).then((result) => {
 
 		const checkForExisting = true;
 		seedSeason(result.toString(), delayInSeconds, db, checkForExisting).then((gamesToFinish)  => {
+			// if there are new games in the most recent season, then add those. otherwise, check for a new season
 			if (gamesToFinish) {
 				Promise.all(seedGames([gamesToFinish], delayInSeconds, db)).then(() => db.close());
 			} else {
 				// then, check for a new season, and if we find one, seed ALL games from that new season
-				db.close();
+				checkForNewSeason(db, delayInSeconds).then(() =>  {
+					db.close();
+				});
 			}
 		});
 	});
@@ -190,6 +241,7 @@ const firstTimeSetupEnvironment = function() {
 const updateEnvironment = function() {
 	executeTask(checkForUpdates);
 };
+
 
 module.exports = {
 	seedGame,
