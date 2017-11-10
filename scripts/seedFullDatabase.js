@@ -1,4 +1,5 @@
 require("dotenv").config({ path: "./env." + process.env.NODE_ENV });
+const bugsnag = require("bugsnag");
 var request = require("request-promise");
 require("cheerio");
 var robots = require("robots");
@@ -20,6 +21,10 @@ let requestOptions = {
 		"User-Agent": USER_AGENT
 	}
 };
+
+if (process.env.NODE_ENV === "production") {
+	bugsnag.register("8c6c3e8de424b622023527da88f508ee");
+}
 
 var seedGame = function(gameId, delay, db) {	
 	return new Promise(function(resolve) {
