@@ -83,4 +83,42 @@ describe("J-Archive scraping scripts", function() {
 
 	});
 
+
+	it("shouldUpdateGame ignores games that don't have both jeopardy and double jeopardy", () => {
+
+		// no jeopardy categories, no double jeopardy categories
+		let emptyJson = {
+			jeopardy: {
+				categories: []
+			},
+			double_jeopardy: {
+				categories: []
+			}
+		};
+		expect(scraper.shouldUpdateGame(emptyJson)).toEqual(false);
+
+		let noDoubleJeopardy = {
+			jeopardy: {
+				categories: [{name: "a category", clues: [{question: "a clue"}]}]
+			},
+			double_jeopardy: {
+				categories: []
+			}
+		};
+
+		expect(scraper.shouldUpdateGame(noDoubleJeopardy)).toEqual(false);
+
+		let validGame = {
+			jeopardy: {
+				categories: [{name: "a category", clues: [{question: "a clue"}]}]
+			},
+			double_jeopardy: {
+				categories: [{name: "a category", clues: [{question: "a clue"}]}]
+			}
+		};
+
+		expect(scraper.shouldUpdateGame(validGame)).toEqual(true);
+
+	});
+
 });

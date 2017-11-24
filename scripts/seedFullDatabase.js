@@ -26,6 +26,16 @@ if (process.env.NODE_ENV === "production") {
 	bugsnag.register("8c6c3e8de424b622023527da88f508ee");
 }
 
+const shouldUpdateGame = function(gameJson) {
+
+	if (gameJson.jeopardy.categories.length === 0 || gameJson.double_jeopardy.categories.length === 0) {
+		return false;
+	} else {
+		return true;
+	}
+
+};
+
 var seedGame = function(gameId, delay, db) {	
 	return new Promise(function(resolve) {
 		setTimeout(function() {
@@ -34,10 +44,20 @@ var seedGame = function(gameId, delay, db) {
 			request(requestOptions).then(function(html) {
 				var gameJson = jeopardyParser.parseJeopardyGame(html);
 				var gamesCollection = db.collection("games");
-				console.log("updating game ", gameId, " with ", gameJson);
-				gamesCollection.updateOne({id: gameId}, {$set: gameJson}, function() {
-					resolve();
-				});
+
+				const gameHasClues = shouldUpdateGame(gameJson);
+
+				if (gameHasClues) {
+					console.log("updating game ", gameId, " with ", gameJson);
+					gamesCollection.updateOne({id: gameId}, {$set: gameJson}, function() {
+						resolve();
+					});
+				} else {
+					console.log("not updating the incomplete game ", gameId);
+					gamesCollection.removeOne({id: gameId}, {}, function() {
+						resolve();
+					});
+				}
 			});
 		}, delay * 1000);
 	});
@@ -254,4 +274,5 @@ module.exports = {
 	seedSeason,
 	firstTimeSetupEnvironment,
 	updateEnvironment,
+	shouldUpdateGame,
 };
