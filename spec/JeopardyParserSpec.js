@@ -70,6 +70,24 @@ describe("JeopardyParser", function() {
 
 	});
 
+	describe("parseJeopardyGame for a final jeopardy clue with media", () => {
+
+		it("includes any media in the final jeopardy object (#3)", (done) =>{
+			fs.readFile("./spec/data/game_with_media_final_jeopardy.html", (err, data) => {
+				if (err) {
+					throw err;
+				}
+
+				// basic metadata
+				const result = JeopardyParser.parseJeopardyGame(data.toString());
+				expect(result.final_jeopardy.categories[0].media).toEqual( [ { url : "http://www.j-archive.com/media/2017-09-25_FJ.jpg", type : "image" } ]);
+
+				done();
+			});
+		});
+
+	});
+
 	describe("parseJeopardySeason", () => {
 
 		it("parses the list of games for a season", (done) => {
