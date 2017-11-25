@@ -88,6 +88,22 @@ describe("JeopardyParser", function() {
 
 	});
 
+	describe("parseJeopardyGame for a game that inclues category comments", () => {
+		it ("includes the categoryComments with the category, stripping out unimportant punctuation", (done) => {
+			fs.readFile("./spec/data/game_with_category_comments.html", (err, data) => {
+				if (err) {
+					throw err;
+				}
+
+				// basic metadata
+				const result = JeopardyParser.parseJeopardyGame(data.toString());
+				expect(result.double_jeopardy.categories[5].categoryComments).toEqual("Each correct response contains a number spelled out in the response.");
+
+				done();
+			});
+		});
+	});
+
 	describe("parseJeopardySeason", () => {
 
 		it("parses the list of games for a season", (done) => {
