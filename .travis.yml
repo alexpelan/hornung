@@ -3,7 +3,7 @@ services: mongodb
 git:
   submodules: false
 node_js:
-- '8'
+- '8.6.0'
 deploy:
 - provider: s3
   access_key_id: $AWS_ACCESS_KEY
