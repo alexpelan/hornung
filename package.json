@@ -27,7 +27,7 @@
     "yargs": "^7.0.1"
   },
   "engines": {
-    "node": "7.9.0"
+    "node": "8.6.0"
   },
   "scripts": {
     "pretest": "eslint scripts lib spec routes app.js; NODE_ENV=test node ./scripts/resetDatabase.js; NODE_ENV=test node ./app.js &",
