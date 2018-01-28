@@ -12,6 +12,7 @@ deploy:
   skip_cleanup: true
   on: &1
     repo: alexpelan/hornung
+    all_branches: true
   bucket: hornung-production
   region: us-west-2
 - provider: codedeploy
