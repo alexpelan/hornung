@@ -14,7 +14,7 @@ deploy:
     repo: alexpelan/hornung
     all_branches: true
   bucket: hornung-production
-  region: us-west-2
+  region: us-west-2b
 - provider: codedeploy
   access_key_id: $AWS_ACCESS_KEY
   secret_access_key: $AWS_SECRET_KEY
@@ -23,7 +23,7 @@ deploy:
   bundle_type: zip
   application: hornung
   deployment_group: hornung
-  region: us-west-2
+  region: us-west-2b
   on: *1
   wait-until-deployed: true
 script:
