@@ -1,3 +1,3 @@
 #!/bin/bash
-sudo pm2 stop app
-sudo pm2 delete app
+pm2 stop all
+pm2 delete all
