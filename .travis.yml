@@ -12,19 +12,20 @@ deploy:
   skip_cleanup: true
   on: &1
     repo: alexpelan/hornung
+    all_branches: true
   bucket: hornung-production
   region: us-west-2
-- provider: codedeploy
-  access_key_id: $AWS_ACCESS_KEY
-  secret_access_key: $AWS_SECRET_KEY
-  bucket: hornung-production
-  key: latest.zip
-  bundle_type: zip
-  application: hornung
-  deployment_group: hornung
-  region: us-west-2
-  on: *1
-  wait-until-deployed: true
+# - provider: codedeploy
+#   access_key_id: $AWS_ACCESS_KEY
+#   secret_access_key: $AWS_SECRET_KEY
+#   bucket: hornung-production
+#   key: latest.zip
+#   bundle_type: zip
+#   application: hornung
+#   deployment_group: hornung
+#   region: us-west-2
+#   on: *1
+#   wait-until-deployed: true
 script:
 - zip -r latest *
 - mkdir -p dpl_cd_upload

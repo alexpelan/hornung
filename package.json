@@ -39,5 +39,6 @@
   },
   "main": "index.js",
   "author": "Alex Pelan",
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": "just checking in some changes"
 }
